@@ -32,6 +32,93 @@ ROLE_LABELS = {
 _FLAN_PIPELINE = None
 _FLAN_INIT_LOCK = threading.Lock()
 
+TECHNICAL_SKILL_DICTIONARY = [
+    'Python',
+    'Java',
+    'C++',
+    'JavaScript',
+    'Machine Learning',
+    'Deep Learning',
+    'TensorFlow',
+    'PyTorch',
+    'Scikit-learn',
+    'Pandas',
+    'NumPy',
+    'Django',
+    'Flask',
+    'FastAPI',
+    'React',
+    'Node.js',
+    'MongoDB',
+    'PostgreSQL',
+    'SQL',
+    'Docker',
+    'Kubernetes',
+    'Git',
+    'Data Analysis',
+]
+
+TECHNICAL_SKILL_ALIAS_MAP = {
+    'python': 'Python',
+    'java': 'Java',
+    'c++': 'C++',
+    'cplusplus': 'C++',
+    'javascript': 'JavaScript',
+    'machine learning': 'Machine Learning',
+    'ml': 'Machine Learning',
+    'deep learning': 'Deep Learning',
+    'dl': 'Deep Learning',
+    'tensorflow': 'TensorFlow',
+    'pytorch': 'PyTorch',
+    'scikit-learn': 'Scikit-learn',
+    'scikit learn': 'Scikit-learn',
+    'sklearn': 'Scikit-learn',
+    'pandas': 'Pandas',
+    'numpy': 'NumPy',
+    'django': 'Django',
+    'flask': 'Flask',
+    'fastapi': 'FastAPI',
+    'react': 'React',
+    'node.js': 'Node.js',
+    'nodejs': 'Node.js',
+    'node js': 'Node.js',
+    'mongodb': 'MongoDB',
+    'postgresql': 'PostgreSQL',
+    'postgres': 'PostgreSQL',
+    'sql': 'SQL',
+    'docker': 'Docker',
+    'kubernetes': 'Kubernetes',
+    'k8s': 'Kubernetes',
+    'git': 'Git',
+    'data analysis': 'Data Analysis',
+    'data analytics': 'Data Analysis',
+}
+
+ROLE_SKILL_KEYWORDS = {
+    'AIML': ['Python', 'Machine Learning', 'Deep Learning', 'TensorFlow', 'PyTorch', 'Scikit-learn', 'Pandas', 'NumPy', 'CNN', 'RAG'],
+    'WEB_DEV': ['JavaScript', 'React', 'Node.js', 'Django', 'Flask', 'FastAPI', 'SQL', 'PostgreSQL', 'MongoDB', 'Git'],
+    'UI_UX': ['Figma', 'Wireframe', 'Prototype', 'User Research', 'Usability', 'Design System'],
+    'FRONTEND': ['JavaScript', 'React', 'HTML', 'CSS', 'TypeScript', 'Git'],
+    'BACKEND': ['Python', 'Java', 'Node.js', 'Django', 'Flask', 'FastAPI', 'SQL', 'PostgreSQL', 'MongoDB', 'Docker'],
+    'FULL_STACK': ['JavaScript', 'React', 'Node.js', 'Python', 'Django', 'SQL', 'PostgreSQL', 'MongoDB', 'Docker', 'Git'],
+    'MERN_STACK': ['JavaScript', 'React', 'Node.js', 'MongoDB', 'Docker', 'Git'],
+    'DEVOPS': ['Docker', 'Kubernetes', 'Git', 'CI/CD', 'Jenkins', 'Terraform', 'AWS', 'Azure', 'GCP'],
+    'DATA_ANALYST': ['SQL', 'Python', 'Pandas', 'NumPy', 'Data Analysis', 'Power BI', 'Tableau', 'Excel'],
+    'DATA_SCIENTIST': ['Python', 'Machine Learning', 'Deep Learning', 'TensorFlow', 'PyTorch', 'Scikit-learn', 'Pandas', 'NumPy', 'SQL'],
+    'QA_AUTOMATION': ['Selenium', 'Playwright', 'Cypress', 'Java', 'Python', 'JavaScript', 'Git'],
+    'CYBERSECURITY': ['OWASP', 'SIEM', 'Burp Suite', 'Nmap', 'Wireshark', 'Python', 'Linux', 'Docker'],
+    'CLOUD_ENGINEER': ['AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Terraform', 'PostgreSQL', 'Git'],
+    'ANDROID': ['Java', 'Kotlin', 'Android', 'Room', 'MVVM', 'Git'],
+    'IOS': ['Swift', 'iOS', 'Xcode', 'Core Data', 'MVVM', 'Git'],
+    'PHP': ['PHP', 'Laravel', 'Symfony', 'MySQL', 'PostgreSQL', 'Docker', 'Git'],
+    'JAVASCRIPT': ['JavaScript', 'Node.js', 'React', 'TypeScript', 'MongoDB', 'Git'],
+    'PYTHON': ['Python', 'Django', 'Flask', 'FastAPI', 'Pandas', 'NumPy', 'Scikit-learn', 'PostgreSQL', 'SQL', 'Git'],
+    'GEN_AI': ['Python', 'RAG', 'LLM', 'Transformers', 'TensorFlow', 'PyTorch', 'Vector DB', 'Prompt Engineering'],
+    'JAVA': ['Java', 'Spring', 'Spring Boot', 'Hibernate', 'SQL', 'PostgreSQL', 'Docker', 'Git'],
+    'ANGULAR': ['Angular', 'TypeScript', 'RxJS', 'JavaScript', 'Node.js', 'Git'],
+    'DOTNET': ['C#', '.NET', 'ASP.NET', 'Entity Framework', 'SQL', 'PostgreSQL', 'Docker', 'Git'],
+}
+
 
 ROLE_QUESTION_BANK = {
     'AIML': [
@@ -393,22 +480,88 @@ def extract_resume_text(uploaded_file):
 
 
 def _top_keywords(resume_text, max_items=8):
-    words = re.findall(r'[A-Za-z][A-Za-z0-9+#.]{1,20}', (resume_text or '').lower())
-    stopwords = {
-        'the', 'and', 'with', 'for', 'from', 'this', 'that', 'have', 'has', 'you', 'your',
-        'are', 'was', 'were', 'will', 'using', 'used', 'into', 'over', 'under', 'year', 'years',
-        'project', 'projects', 'worked', 'work', 'team', 'skills', 'skill', 'experience', 'role',
-        'education', 'college', 'university', 'resume', 'profile', 'developer', 'engineer',
-    }
+    return _extract_technical_skills(resume_text, max_items=max_items)
 
-    freq = {}
-    for word in words:
-        if len(word) < 3 or word in stopwords:
-            continue
-        freq[word] = freq.get(word, 0) + 1
 
-    ranked = sorted(freq.items(), key=lambda item: (-item[1], item[0]))
-    return [item[0] for item in ranked[:max_items]]
+def _skill_match_count(text, alias):
+    pattern = r'(?<![A-Za-z0-9])' + re.escape(alias) + r'(?![A-Za-z0-9])'
+    return len(re.findall(pattern, text, flags=re.IGNORECASE))
+
+
+def _extract_technical_skills(resume_text, max_items=10):
+    text = (resume_text or '').strip().lower()
+    if not text:
+        return []
+
+    score_map = {skill: 0 for skill in TECHNICAL_SKILL_DICTIONARY}
+    for alias, canonical in TECHNICAL_SKILL_ALIAS_MAP.items():
+        mentions = _skill_match_count(text, alias)
+        if mentions > 0:
+            score_map[canonical] = score_map.get(canonical, 0) + mentions
+
+    ranked = [
+        skill
+        for skill, score in sorted(
+            score_map.items(),
+            key=lambda item: (-item[1], TECHNICAL_SKILL_DICTIONARY.index(item[0])),
+        )
+        if score > 0
+    ]
+
+    clean_limit = max(1, min(int(max_items or 10), 10))
+    return ranked[:clean_limit]
+
+
+def _extract_role_skill_set(role_questions):
+    role_text = ' '.join(role_questions or []).lower()
+    detected = set()
+    for alias, canonical in TECHNICAL_SKILL_ALIAS_MAP.items():
+        if _skill_match_count(role_text, alias) > 0:
+            detected.add(canonical.lower())
+    return detected
+
+
+def _keyword_mention_count(text, keyword):
+    pattern = r'(?<![A-Za-z0-9])' + re.escape(keyword) + r'(?![A-Za-z0-9])'
+    return len(re.findall(pattern, text, flags=re.IGNORECASE))
+
+
+def _role_keyword_score_map(resume_text):
+    text = (resume_text or '').strip().lower()
+    role_scores = {key: 0 for key in ROLE_QUESTION_BANK.keys()}
+    if not text:
+        return role_scores
+
+    for role_key, keywords in ROLE_SKILL_KEYWORDS.items():
+        role_scores[role_key] = sum(_keyword_mention_count(text, keyword.lower()) for keyword in keywords)
+
+    return role_scores
+
+
+def extract_role_matched_skills(resume_text, target_role='PYTHON', max_items=10):
+    text = (resume_text or '').strip().lower()
+    role_key = (target_role or '').strip().upper()
+    if role_key not in ROLE_SKILL_KEYWORDS:
+        role_key = 'PYTHON'
+    if not text:
+        return []
+
+    score_map = {}
+    for keyword in ROLE_SKILL_KEYWORDS.get(role_key, []):
+        mentions = _keyword_mention_count(text, keyword.lower())
+        if mentions > 0:
+            score_map[keyword] = mentions
+
+    ranked = [
+        skill
+        for skill, _score in sorted(
+            score_map.items(),
+            key=lambda item: (-item[1], ROLE_SKILL_KEYWORDS[role_key].index(item[0])),
+        )
+    ]
+
+    clean_limit = max(1, min(int(max_items or 10), 10))
+    return ranked[:clean_limit]
 
 
 def _clean_text(value):
@@ -434,22 +587,7 @@ def _split_bullets(resume_text):
 
 
 def _extract_skills_from_text(resume_text):
-    lines = _split_bullets(resume_text)
-    skill_lines = [line for line in lines if 'skill' in line.lower() or 'technology' in line.lower() or 'tools' in line.lower()]
-    extracted = []
-
-    for line in skill_lines:
-        normalized = re.sub(r'(?i)skills?|technologies|tools|frameworks|languages', '', line)
-        parts = re.split(r'[:,|/]|\s{2,}', normalized)
-        for part in parts:
-            token = _clean_text(part)
-            if token and len(token) <= 35:
-                extracted.append(token)
-
-    if not extracted:
-        extracted = _top_keywords(resume_text, max_items=12)
-
-    return _unique_preserve(extracted)[:12]
+    return _extract_technical_skills(resume_text, max_items=10)
 
 
 def _extract_project_lines(resume_text):
@@ -470,10 +608,10 @@ def _extract_resume_signals(resume_text):
     internship_lines = _extract_internship_lines(resume_text)
     project_lines = _extract_project_lines(resume_text)
     normalized_skills = _extract_skills_from_text(resume_text)
-    fallback_keywords = _top_keywords(resume_text, max_items=14)
+    fallback_keywords = _extract_technical_skills(resume_text, max_items=10)
 
     if not normalized_skills:
-        normalized_skills = fallback_keywords[:8]
+        normalized_skills = fallback_keywords[:10]
 
     return internship_lines, project_lines, normalized_skills, fallback_keywords
 
@@ -593,7 +731,7 @@ def _finalize_random_question_set(all_questions, role_anchor_questions, max_item
     return selected[:max_items]
 
 
-def extract_resume_role_match(resume_text, top_k=14):
+def extract_resume_role_match(resume_text, top_k=10):
     text = (resume_text or '').strip().lower()
     if not text:
         return {
@@ -602,14 +740,9 @@ def extract_resume_role_match(resume_text, top_k=14):
             'best_role': 'PYTHON',
         }
 
-    keywords = _top_keywords(text, max_items=max(8, top_k))
-    keyword_set = set(keywords)
-
-    role_scores = {}
-    for role_key, role_questions in ROLE_QUESTION_BANK.items():
-        role_text = ' '.join(role_questions).lower()
-        role_tokens = set(_top_keywords(role_text, max_items=40))
-        role_scores[role_key] = len(keyword_set.intersection(role_tokens))
+    limit = max(1, min(int(top_k or 10), 10))
+    keywords = _extract_technical_skills(text, max_items=limit)
+    role_scores = _role_keyword_score_map(text)
 
     best_role = max(role_scores.items(), key=lambda item: item[1])[0] if role_scores else 'PYTHON'
     if role_scores.get(best_role, 0) == 0:
@@ -666,7 +799,7 @@ def _parse_generated_questions(raw_text):
 def generate_questions_with_flan(resume_text, target_role='PYTHON', question_count=20):
     role_key = _normalize_role_track(target_role)
     role_label = ROLE_LABELS.get(role_key, 'Python Developer')
-    keywords = _top_keywords(resume_text or '', max_items=10)
+    keywords = _extract_technical_skills(resume_text or '', max_items=10)
     keyword_text = ', '.join(keywords) if keywords else 'projects, problem solving, implementation'
 
     flan = _get_flan_pipeline()

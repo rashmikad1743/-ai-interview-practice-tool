@@ -197,10 +197,27 @@ def _normalize_test_cases(test_cases):
     for index, case in enumerate(test_cases or []):
         if not isinstance(case, dict):
             continue
+
+        raw_input = case.get('input')
+        if isinstance(raw_input, list):
+            list_input = raw_input
+        elif isinstance(raw_input, tuple):
+            list_input = list(raw_input)
+        elif isinstance(raw_input, dict) and '__args__' in raw_input:
+            unpacked = raw_input.get('__args__', [])
+            if isinstance(unpacked, list):
+                list_input = unpacked
+            elif isinstance(unpacked, tuple):
+                list_input = list(unpacked)
+            else:
+                list_input = [unpacked]
+        else:
+            list_input = [raw_input]
+
         normalized.append(
             {
                 'is_visible': bool(case.get('visible', index == 0)),
-                'input': case.get('input'),
+                'input': list_input,
                 'expected': case.get('expected'),
                 'function_name': case.get('function_name'),
             }
@@ -250,11 +267,7 @@ for idx, case in enumerate(cases):
     expected = case.get('expected')
     is_visible = bool(case.get('is_visible', idx == 0))
     try:
-        if isinstance(raw_input, dict) and '__args__' in raw_input and raw_input.get('__use_args__'):
-            call_args = raw_input.get('__args__', [])
-            actual = target(*call_args)
-        else:
-            actual = target(raw_input)
+        actual = target(raw_input)
 
         results.append({{
             'ok': True,

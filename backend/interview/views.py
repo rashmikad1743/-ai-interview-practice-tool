@@ -27,6 +27,7 @@ from .services.question_precompute import queue_technical_questions_precompute
 from .services.report_pdf import build_session_report_pdf
 from .services.resume_ai import (
 	extract_resume_role_match,
+	extract_role_matched_skills,
 	generate_role_based_questions,
 )
 
@@ -581,11 +582,30 @@ def _extract_visible_sample_case(test_cases):
 	if not visible:
 		return None
 
+	function_name = (visible.get('function_name') or 'func').strip() if isinstance(visible.get('function_name'), str) else 'func'
+	input_value = visible.get('input')
+	if isinstance(input_value, list):
+		list_preview = input_value
+	elif isinstance(input_value, tuple):
+		list_preview = list(input_value)
+	elif isinstance(input_value, dict) and '__args__' in input_value:
+		raw_args = input_value.get('__args__', [])
+		if isinstance(raw_args, list):
+			list_preview = raw_args
+		else:
+			list_preview = [raw_args]
+	else:
+		list_preview = [input_value]
+
 	hidden_total = sum(1 for index, case in enumerate(test_cases) if isinstance(case, dict) and not case.get('visible', index == 0))
 	return {
-		'sample_input': _format_sample_value(visible.get('input')),
+		'sample_input': _format_sample_value(list_preview),
 		'sample_output': _format_sample_value(visible.get('expected')),
 		'hidden_total': hidden_total,
+		'function_signature': f'def {function_name}(L):',
+		'input_format': 'The input will be passed as a list.',
+		'call_example': f'{function_name}({list_preview})',
+		'explanation': 'The first line represents the number of elements. The second line contains the list of integers.',
 	}
 
 
@@ -1081,6 +1101,8 @@ def technical_round_view(request, session_id):
 		return redirect('interview:session_progress', session_id=session.id)
 
 	technical_response, _ = TechnicalResponse.objects.get_or_create(session=session)
+	detected_skills_session_key = f'technical_detected_skills_{session.id}'
+	detected_skills = request.session.get(detected_skills_session_key, [])
 	deadline_key = f'technical_deadline_{session.id}'
 	deadline_timestamp = request.session.get(deadline_key)
 	if not deadline_timestamp:
@@ -1127,6 +1149,25 @@ def technical_round_view(request, session_id):
 			resume_text = base_resume_text
 
 			if resume_text:
+				confirm_skills = request.POST.get('confirm_skills') == 'yes'
+				detected_skills = extract_role_matched_skills(
+					resume_text,
+					target_role=technical_response.target_role,
+					max_items=10,
+				)
+				request.session[detected_skills_session_key] = detected_skills
+
+				if not confirm_skills:
+					technical_response.resume_text = resume_text
+					technical_response.interviewer_notes = interviewer_notes
+					technical_response.camera_enabled = camera_enabled
+					technical_response.save(update_fields=['resume_text', 'interviewer_notes', 'camera_enabled', 'target_role', 'updated_at'])
+					if detected_skills:
+						messages.info(request, 'Detected role-based skills are shown below. Please confirm skills and click Generate Questions again.')
+					else:
+						messages.warning(request, 'No role-based skills detected for selected role. You can still confirm and continue.')
+					return redirect('interview:technical_round', session_id=session.id)
+
 				match_payload = extract_resume_role_match(resume_text)
 				best_match_role = match_payload.get('best_role', technical_response.target_role)
 				if technical_response.target_role not in dict(TechnicalResponse.RoleTrack.choices):
@@ -1142,6 +1183,7 @@ def technical_round_view(request, session_id):
 				technical_response.interviewer_notes = interviewer_notes
 				technical_response.camera_enabled = camera_enabled
 				technical_response.save()
+				request.session.pop(detected_skills_session_key, None)
 
 				if technical_response.generated_questions:
 					messages.success(request, 'Role-based technical questions generated from login resume.')
@@ -1197,6 +1239,7 @@ def technical_round_view(request, session_id):
 			'technical_response': technical_response,
 			'role_choices': TechnicalResponse.RoleTrack.choices,
 			'generated_questions': technical_response.generated_questions,
+			'detected_skills': detected_skills,
 			'remaining_seconds': remaining_seconds,
 			'technical_duration_minutes': TECHNICAL_DURATION_MINUTES,
 		},

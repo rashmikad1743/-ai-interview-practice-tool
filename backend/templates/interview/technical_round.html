@@ -59,6 +59,24 @@
 
         <div class="meta" style="margin-bottom:8px;">Questions are generated from the resume uploaded at login.</div>
 
+        {% if detected_skills %}
+            <div class="list" style="margin-bottom:10px;">
+                <div class="meta" style="margin-bottom:6px;"><strong>Detected Skills (Role-based)</strong></div>
+                <ol style="margin: 8px 0 0 18px;">
+                    {% for skill in detected_skills %}
+                        <li class="meta" style="margin-bottom:6px;">{{ skill }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+        {% endif %}
+
+        <div class="form-row" style="margin-bottom:8px;">
+            <label style="display:flex; align-items:center; gap:8px; margin-bottom:0; font-weight:500;">
+                <input type="checkbox" name="confirm_skills" value="yes">
+                I confirm these detected skills and want to generate interview questions.
+            </label>
+        </div>
+
         <div class="action-row">
             <button class="btn btn-outline" type="submit" onclick="document.getElementById('technicalAction').value='generate_questions';">Generate Questions</button>
         </div>
