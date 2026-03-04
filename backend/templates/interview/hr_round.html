@@ -52,6 +52,8 @@
     let isRecording = false;
     let activeStream = null;
     let stopRequested = false;
+    let committedTranscript = '';
+    let latestInterimTranscript = '';
 
     const setStatus = (text) => {
         if (statusEl) {
@@ -64,6 +66,18 @@
             return null;
         }
         return document.getElementById('answer_' + activeIndex);
+    };
+
+    const renderTranscriptToTarget = () => {
+        const target = getTargetTextarea();
+        if (!target) {
+            return;
+        }
+        if (latestInterimTranscript) {
+            target.value = (committedTranscript + ' ' + latestInterimTranscript).trim();
+        } else {
+            target.value = committedTranscript;
+        }
     };
 
     const stopTracks = () => {
@@ -112,25 +126,18 @@
         };
 
         rec.onresult = (event) => {
-            let finalText = '';
-            let interimText = '';
+            let interimParts = [];
             for (let i = event.resultIndex; i < event.results.length; i += 1) {
                 const segment = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
-                    finalText += segment + ' ';
+                    committedTranscript = (committedTranscript + ' ' + segment).trim();
                 } else {
-                    interimText += segment + ' ';
+                    interimParts.push(segment);
                 }
             }
 
-            const textToAppend = finalText.trim() || (stopRequested ? interimText.trim() : '');
-            if (textToAppend) {
-                const target = getTargetTextarea();
-                if (!target) {
-                    return;
-                }
-                target.value = (target.value + ' ' + textToAppend).trim();
-            }
+            latestInterimTranscript = interimParts.join(' ').trim();
+            renderTranscriptToTarget();
         };
 
         rec.onerror = function (event) {
@@ -145,6 +152,11 @@
         };
 
         rec.onend = function () {
+            if (latestInterimTranscript) {
+                committedTranscript = (committedTranscript + ' ' + latestInterimTranscript).trim();
+                latestInterimTranscript = '';
+                renderTranscriptToTarget();
+            }
             isRecording = false;
             stopRequested = false;
             stopTracks();
@@ -167,6 +179,9 @@
 
         stopRecognition();
         activeIndex = index;
+        const target = getTargetTextarea();
+        committedTranscript = target ? (target.value || '').trim() : '';
+        latestInterimTranscript = '';
 
         try {
             await ensureMicPermission();
