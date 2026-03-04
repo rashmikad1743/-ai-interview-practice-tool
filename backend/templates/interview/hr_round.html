@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Stage 4 — HR Round</h3>
+        <p class="subtitle">Session #{{ session.id }} • {{ total_questions }} HR interview questions</p>
+    </div>
+    <div class="action-row">
+        <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">Back to Progress</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 12px;">
+    <div class="page-head" style="margin:0 0 8px 0;">
+        <strong>How to Answer (Simple)</strong>
+        <span class="badge" id="hrMicStatus">Mic: Inactive</span>
+    </div>
+    <div class="meta">Keep answers clear, short, and structured: Situation → Action → Result. Use confident words and avoid fillers like "um/uh".</div>
+    <div class="meta" style="margin-top:6px;">For each question, click <strong>Start Mic</strong>, speak your answer, then click <strong>Stop Mic</strong>. Text will be added automatically.</div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    {% for row in answer_rows %}
+        <div class="card" style="margin-bottom: 12px;">
+            <div class="meta" style="margin-bottom:6px;"><strong>Q{{ row.index }}.</strong> {{ row.question }}</div>
+            <div class="form-row" style="margin-bottom:0;">
+                <label for="answer_{{ row.index }}">Your Answer</label>
+                <textarea id="answer_{{ row.index }}" name="answer_{{ row.index }}" rows="4" placeholder="Type your answer here...">{{ row.answer }}</textarea>
+            </div>
+            <div class="action-row" style="margin-top:8px;">
+                <button class="btn btn-outline mic-start-btn" type="button" data-answer-index="{{ row.index }}">Start Mic</button>
+                <button class="btn btn-outline mic-stop-btn" type="button" data-answer-index="{{ row.index }}">Stop Mic</button>
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="action-row">
+        <button class="btn btn-success" type="submit">Submit HR Round</button>
+        <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">Save & Exit</a>
+    </div>
+</form>
+
+<script>
+(function () {
+    const statusEl = document.getElementById('hrMicStatus');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let activeIndex = null;
+    let isRecording = false;
+    let activeStream = null;
+
+    const setStatus = (text) => {
+        if (statusEl) {
+            statusEl.textContent = text;
+        }
+    };
+
+    const getTargetTextarea = () => {
+        if (!activeIndex) {
+            return null;
+        }
+        return document.getElementById('answer_' + activeIndex);
+    };
+
+    const stopTracks = () => {
+        if (activeStream) {
+            activeStream.getTracks().forEach((track) => track.stop());
+            activeStream = null;
+        }
+    };
+
+    const stopRecognition = () => {
+        if (recognition && isRecording) {
+            try {
+                recognition.stop();
+            } catch (e) {}
+        }
+        isRecording = false;
+        stopTracks();
+        setStatus('Mic: Inactive');
+    };
+
+    const ensureMicPermission = async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Browser does not support microphone access.');
+        }
+        activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    };
+
+    const createRecognition = () => {
+        if (!SpeechRecognition) {
+            return null;
+        }
+
+        const rec = new SpeechRecognition();
+        rec.lang = 'en-US';
+        rec.continuous = true;
+        rec.interimResults = true;
+
+        rec.onstart = function () {
+            isRecording = true;
+            setStatus('Mic: Recording Q' + activeIndex);
+        };
+
+        rec.onresult = (event) => {
+            let finalText = '';
+            for (let i = event.resultIndex; i < event.results.length; i += 1) {
+                const segment = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalText += segment + ' ';
+                }
+            }
+
+            if (finalText.trim()) {
+                const target = getTargetTextarea();
+                if (!target) {
+                    return;
+                }
+                target.value = (target.value + ' ' + finalText.trim()).trim();
+            }
+        };
+
+        rec.onerror = function (event) {
+            const code = event && event.error ? event.error : 'unknown';
+            if (code === 'not-allowed') {
+                setStatus('Mic: Permission denied. Allow mic access in browser settings.');
+            } else if (code === 'no-speech') {
+                setStatus('Mic: No speech detected. Try speaking louder/closer.');
+            } else {
+                setStatus('Mic: Error (' + code + '). Please retry.');
+            }
+        };
+
+        rec.onend = function () {
+            isRecording = false;
+            stopTracks();
+            setStatus('Mic: Inactive');
+        };
+
+        return rec;
+    };
+
+    const startRecognitionFor = async (index) => {
+        if (!SpeechRecognition) {
+            setStatus('Mic: Not supported in this browser');
+            return;
+        }
+
+        if (!window.isSecureContext) {
+            setStatus('Mic: HTTPS required.');
+            return;
+        }
+
+        stopRecognition();
+        activeIndex = index;
+
+        try {
+            await ensureMicPermission();
+        } catch (error) {
+            setStatus('Mic: Permission/device error. Check browser mic settings.');
+            return;
+        }
+
+        recognition = createRecognition();
+        if (!recognition) {
+            setStatus('Mic: Not supported in this browser');
+            return;
+        }
+
+        try {
+            recognition.start();
+        } catch (error) {
+            setStatus('Mic: Could not start. Please retry.');
+            isRecording = false;
+            stopTracks();
+        }
+    };
+
+    document.querySelectorAll('.mic-start-btn').forEach((btn) => {
+        btn.addEventListener('click', async function () {
+            const idx = this.getAttribute('data-answer-index');
+            await startRecognitionFor(idx);
+        });
+    });
+
+    document.querySelectorAll('.mic-stop-btn').forEach((btn) => {
+        btn.addEventListener('click', function () {
+            const idx = this.getAttribute('data-answer-index');
+            if (String(activeIndex) === String(idx)) {
+                stopRecognition();
+                activeIndex = null;
+            }
+        });
+    });
+})();
+</script>
+{% endblock %}

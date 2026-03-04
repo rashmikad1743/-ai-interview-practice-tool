@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    #currentQuestionBox,
+    #questionList,
+    #deviceSummary,
+    #sessionStatus {
+        word-break: break-word;
+    }
+
+    @media (max-width: 760px) {
+        #questionList {
+            margin-left: 0;
+            padding-left: 18px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        #cameraPreview {
+            max-width: 100%;
+        }
+        #questionIndexBadge {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Stage 3 — Technical Round (Voice Session)</h3>
+        <p class="subtitle">Session #{{ session.id }} • {{ technical_duration_minutes }} min interview • Mic + Camera + Speaker + Browser transcription</p>
+    </div>
+    <div class="action-row">
+        <span class="badge" id="timerBadge">Time Left: --:--</span>
+        <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">Back to Progress</a>
+    </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="technicalForm">
+    {% csrf_token %}
+    <input type="hidden" name="action" id="technicalAction" value="submit_technical">
+    <input type="hidden" name="camera_enabled" id="cameraEnabled" value="{% if technical_response.camera_enabled %}true{% else %}false{% endif %}">
+
+    <div class="card" style="margin-bottom: 12px;">
+        <div class="page-head" style="margin: 0 0 10px 0;">
+            <strong>Question Generation</strong>
+            <span class="badge">Login Resume-driven AI Questions</span>
+        </div>
+
+        <div class="form-row">
+            <label for="target_role">Select Technical Role</label>
+            <select id="target_role" name="target_role">
+                {% for value, label in role_choices %}
+                    <option value="{{ value }}" {% if technical_response.target_role == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="meta" style="margin-bottom:8px;">Questions are generated from the resume uploaded at login.</div>
+
+        <div class="action-row">
+            <button class="btn btn-outline" type="submit" onclick="document.getElementById('technicalAction').value='generate_questions';">Generate Questions</button>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 12px;">
+        <div class="page-head" style="margin: 0 0 10px 0;">
+            <strong>Generated Technical Questions</strong>
+            <span class="badge">Voice Interview Prompt Set (20)</span>
+        </div>
+
+        {% if generated_questions %}
+            <div class="meta" style="margin-bottom:8px;">Generated Questions: <strong>{{ generated_questions|length }}</strong></div>
+            <div class="action-row" style="margin-bottom: 10px;">
+                <button class="btn btn-outline" type="button" id="readCurrentQuestionBtn">🔊 Ask Current Question</button>
+                <button class="btn btn-outline" type="button" id="nextQuestionBtn">Next Question</button>
+                <span class="badge" id="questionIndexBadge">Q1 / {{ generated_questions|length }}</span>
+            </div>
+
+            <div class="list" id="currentQuestionBox" style="margin-top: 0;"></div>
+
+            <ol id="questionList" style="margin: 10px 0 0 18px;">
+                {% for question in generated_questions %}
+                    <li class="meta" style="margin-bottom:6px;">{{ question }}</li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            <div class="empty-state">No questions yet. Select role and click "Generate Questions".</div>
+        {% endif %}
+    </div>
+
+    <div class="card" style="margin-bottom: 12px;">
+        <div class="page-head" style="margin: 0 0 10px 0;">
+            <strong>Live Interview Setup</strong>
+            <span class="badge">Free Browser Voice Stack</span>
+        </div>
+        <div class="meta" id="deviceSummary" style="margin-bottom:8px;">Detecting devices...</div>
+        <div class="action-row" style="margin-bottom:10px;">
+            <button class="btn btn-outline" type="button" id="startSessionBtn">Start Mic + Camera</button>
+            <button class="btn btn-outline" type="button" id="stopSessionBtn">Stop Session</button>
+            <button class="btn btn-outline" type="button" id="refreshDevicesBtn">Refresh Devices</button>
+            <button class="btn btn-outline" type="button" id="testSpeakerBtn">Test Speaker</button>
+        </div>
+
+        <video id="cameraPreview" autoplay muted playsinline style="width:100%; max-width:420px; border-radius:10px; border:1px solid var(--border); background:#000;"></video>
+        <p class="meta" id="sessionStatus" style="margin-top:8px;">Camera/Mic inactive.</p>
+
+        <input type="file" name="audio_clip" id="audioClipInput" accept="audio/*" style="display:none;">
+    </div>
+
+    <div class="card" style="margin-bottom: 12px;">
+        <div class="page-head" style="margin: 0 0 10px 0;">
+            <strong>Transcript</strong>
+            <span class="badge">Engine: {{ technical_response.stt_engine|default:'browser' }}</span>
+        </div>
+
+        <div class="form-row">
+            <label for="transcript">Transcript Text</label>
+            <textarea id="transcript" name="transcript" rows="10" placeholder="Your spoken technical answers will appear here...">{{ technical_response.transcript }}</textarea>
+        </div>
+
+        <div class="action-row">
+            <button class="btn btn-outline" type="submit" onclick="document.getElementById('technicalAction').value='transcribe_audio';">Save Browser Transcript</button>
+            <span class="meta">Transcript is captured from browser voice recognition and saved here.</span>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 12px;">
+        <div class="form-row" style="margin-bottom:0;">
+            <label for="interviewer_notes">Interviewer Notes (optional)</label>
+            <textarea id="interviewer_notes" name="interviewer_notes" rows="4" placeholder="Add round observations, topic coverage, confidence level...">{{ technical_response.interviewer_notes }}</textarea>
+        </div>
+    </div>
+
+    <div class="action-row">
+        <button class="btn btn-success" type="submit" onclick="document.getElementById('technicalAction').value='submit_technical';">Submit Technical Round</button>
+        <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">Save & Exit</a>
+    </div>
+</form>
+
+<script>
+(function () {
+    const transcriptEl = document.getElementById('transcript');
+    const statusEl = document.getElementById('sessionStatus');
+    const deviceSummaryEl = document.getElementById('deviceSummary');
+    const cameraPreview = document.getElementById('cameraPreview');
+    const cameraEnabledEl = document.getElementById('cameraEnabled');
+    const audioInput = document.getElementById('audioClipInput');
+    const generatedQuestions = [{% for question in generated_questions %}"{{ question|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
+    let currentQuestionIndex = 0;
+    let remaining = Number('{{ remaining_seconds }}');
+
+    const questionBox = document.getElementById('currentQuestionBox');
+    const questionIndexBadge = document.getElementById('questionIndexBadge');
+    const renderCurrentQuestion = () => {
+        if (!generatedQuestions.length || !questionBox || !questionIndexBadge) {
+            return;
+        }
+        questionBox.innerHTML = '<strong>Current Question:</strong><br>' + generatedQuestions[currentQuestionIndex];
+        questionIndexBadge.textContent = 'Q' + (currentQuestionIndex + 1) + ' / ' + generatedQuestions.length;
+    };
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    };
+
+    const timerBadge = document.getElementById('timerBadge');
+    const tickTimer = () => {
+        if (!timerBadge) {
+            return;
+        }
+        timerBadge.textContent = 'Time Left: ' + formatTime(Math.max(0, remaining));
+        if (remaining <= 0) {
+            document.getElementById('technicalAction').value = 'submit_technical';
+            document.getElementById('technicalForm').submit();
+            return;
+        }
+        remaining -= 1;
+        setTimeout(tickTimer, 1000);
+    };
+
+    const speakQuestion = () => {
+        if (!generatedQuestions.length) {
+            statusEl.textContent = 'Generate questions first.';
+            return;
+        }
+        if (!('speechSynthesis' in window)) {
+            statusEl.textContent = 'Speech synthesis is not supported in this browser.';
+            return;
+        }
+        const utterance = new SpeechSynthesisUtterance(generatedQuestions[currentQuestionIndex]);
+        window.speechSynthesis.speak(utterance);
+    };
+
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recognition = null;
+    let availableDevices = { audioInputs: 0, videoInputs: 0 };
+
+    const supportsMedia = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+    const updateStatus = (message) => {
+        statusEl.textContent = message;
+    };
+
+    const updateDeviceSummary = () => {
+        const secureText = window.isSecureContext ? 'Secure context ✅' : 'Secure context ❌ (HTTPS required)';
+        deviceSummaryEl.textContent = `Mic: ${availableDevices.audioInputs} | Camera: ${availableDevices.videoInputs} | ${secureText}`;
+    };
+
+    const refreshDevices = async () => {
+        if (!supportsMedia()) {
+            availableDevices = { audioInputs: 0, videoInputs: 0 };
+            updateDeviceSummary();
+            updateStatus('Browser does not support media APIs.');
+            return;
+        }
+
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            availableDevices = {
+                audioInputs: devices.filter((d) => d.kind === 'audioinput').length,
+                videoInputs: devices.filter((d) => d.kind === 'videoinput').length,
+            };
+            updateDeviceSummary();
+        } catch (error) {
+            updateStatus('Could not enumerate devices: ' + error);
+        }
+    };
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const startRecognition = () => {
+        if (!SpeechRecognition) {
+            statusEl.textContent = 'Browser speech recognition not supported. You can still upload/transcribe audio.';
+            return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event) => {
+            let finalText = '';
+            for (let i = event.resultIndex; i < event.results.length; i += 1) {
+                const text = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalText += text + ' ';
+                }
+            }
+            if (finalText.trim()) {
+                transcriptEl.value = (transcriptEl.value + ' ' + finalText).trim();
+            }
+        };
+
+        recognition.onerror = () => {
+            statusEl.textContent = 'Speech recognition error. You can continue with manual transcript editing.';
+        };
+
+        recognition.start();
+    };
+
+    const stopRecognition = () => {
+        if (recognition) {
+            try {
+                recognition.stop();
+            } catch (e) {}
+            recognition = null;
+        }
+    };
+
+    document.getElementById('startSessionBtn').addEventListener('click', async function () {
+        if (!window.isSecureContext) {
+            updateStatus('Mic/Camera require HTTPS or localhost. Live deployment must use HTTPS.');
+            return;
+        }
+
+        if (!supportsMedia()) {
+            updateStatus('getUserMedia not supported in this browser.');
+            return;
+        }
+
+        await refreshDevices();
+
+        if (availableDevices.audioInputs === 0 && availableDevices.videoInputs === 0) {
+            updateStatus('No microphone/camera device found in system. Please connect device and click Refresh Devices.');
+            return;
+        }
+
+        let constraints = {
+            audio: availableDevices.audioInputs > 0,
+            video: availableDevices.videoInputs > 0,
+        };
+
+        try {
+            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            cameraPreview.srcObject = mediaStream;
+            const hasVideoTrack = mediaStream.getVideoTracks().length > 0;
+            cameraEnabledEl.value = hasVideoTrack ? 'true' : 'false';
+            updateStatus(hasVideoTrack ? 'Interview session active (mic + camera).' : 'Interview session active (mic only). Camera not available.');
+
+            audioChunks = [];
+            mediaRecorder = new MediaRecorder(mediaStream);
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+            mediaRecorder.start();
+
+            startRecognition();
+        } catch (error) {
+            if (error && error.name === 'NotFoundError' && availableDevices.audioInputs > 0) {
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                    cameraPreview.srcObject = null;
+                    cameraEnabledEl.value = 'false';
+                    updateStatus('Camera not found. Started audio-only interview session.');
+
+                    audioChunks = [];
+                    mediaRecorder = new MediaRecorder(mediaStream);
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+                    mediaRecorder.start();
+                    startRecognition();
+                    return;
+                } catch (fallbackError) {
+                    updateStatus('Could not access mic/camera: ' + fallbackError);
+                    return;
+                }
+            }
+
+            if (error && error.name === 'NotAllowedError') {
+                updateStatus('Permission denied. Please allow camera/microphone access in browser site settings.');
+                return;
+            }
+
+            updateStatus('Could not access mic/camera: ' + error);
+        }
+    });
+
+    document.getElementById('stopSessionBtn').addEventListener('click', function () {
+        stopRecognition();
+
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const file = new File([audioBlob], 'technical_round.webm', { type: 'audio/webm' });
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                audioInput.files = dt.files;
+                updateStatus('Session stopped. Audio clip prepared and transcript can be saved.');
+            };
+        }
+
+        if (mediaStream) {
+            mediaStream.getTracks().forEach((track) => track.stop());
+            mediaStream = null;
+        }
+        cameraPreview.srcObject = null;
+    });
+
+    document.getElementById('testSpeakerBtn').addEventListener('click', function () {
+        if (!('speechSynthesis' in window)) {
+            statusEl.textContent = 'Speech synthesis is not supported in this browser.';
+            return;
+        }
+        const utterance = new SpeechSynthesisUtterance('Technical interview speaker test is working.');
+        window.speechSynthesis.speak(utterance);
+    });
+
+    document.getElementById('refreshDevicesBtn').addEventListener('click', async function () {
+        await refreshDevices();
+        updateStatus('Device list refreshed.');
+    });
+
+    const readCurrentQuestionBtn = document.getElementById('readCurrentQuestionBtn');
+    if (readCurrentQuestionBtn) {
+        readCurrentQuestionBtn.addEventListener('click', speakQuestion);
+    }
+
+    const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+    if (nextQuestionBtn) {
+        nextQuestionBtn.addEventListener('click', function () {
+            if (!generatedQuestions.length) {
+                return;
+            }
+            currentQuestionIndex = (currentQuestionIndex + 1) % generatedQuestions.length;
+            renderCurrentQuestion();
+            speakQuestion();
+        });
+    }
+
+    renderCurrentQuestion();
+    tickTimer();
+    refreshDevices();
+})();
+</script>
+{% endblock %}

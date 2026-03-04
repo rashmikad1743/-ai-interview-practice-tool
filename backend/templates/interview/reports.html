@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Interview Reports</h3>
+        <p class="subtitle">Review all attempts with score and completion status.</p>
+    </div>
+    <a class="btn btn-outline" href="{% url 'interview:dashboard' %}">Back to Dashboard</a>
+</div>
+
+{% if report_rows %}
+    {% for row in report_rows %}
+        <div class="list">
+            <div class="page-head" style="margin: 0 0 6px 0;">
+                <strong>Session #{{ row.session.id }}</strong>
+                <span class="badge">{{ row.session.get_status_display }}</span>
+            </div>
+            <div class="meta">Weighted Score: {{ row.session.weighted_score|default:'N/A' }}</div>
+            {% if row.aptitude_result %}
+                <div class="meta">Stage 1 (Aptitude): Completed • Score {{ row.aptitude_result.score }}</div>
+            {% else %}
+                <div class="meta">Stage 1 (Aptitude): Not attempted yet</div>
+            {% endif %}
+            {% if row.coding_result %}
+                <div class="meta">Stage 2 (Coding): Completed • Score {{ row.coding_result.score }}</div>
+            {% else %}
+                <div class="meta">Stage 2 (Coding): Not attempted yet</div>
+            {% endif %}
+            {% if row.technical_result %}
+                <div class="meta">Stage 3 (Technical): Completed • Score {{ row.technical_result.score }}</div>
+            {% else %}
+                <div class="meta">Stage 3 (Technical): Not attempted yet</div>
+            {% endif %}
+            {% if row.hr_result %}
+                <div class="meta">Stage 4 (HR): Completed • Score {{ row.hr_result.score }}</div>
+            {% else %}
+                <div class="meta">Stage 4 (HR): Not attempted yet</div>
+            {% endif %}
+            <div class="meta">Started: {{ row.session.started_at }}</div>
+            <div class="meta">Completed: {{ row.session.completed_at|default:'-' }}</div>
+            <div class="action-row">
+                <a class="btn btn-outline" href="{% url 'interview:session_progress' row.session.id %}">View Progress</a>
+                <a class="btn btn-outline" href="{% url 'interview:overall_result' row.session.id %}">Final Overall Result</a>
+                <a class="btn btn-success" href="{% url 'interview:download_report_pdf' row.session.id %}">Download PDF</a>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">No reports available yet.</div>
+{% endif %}
+{% endblock %}

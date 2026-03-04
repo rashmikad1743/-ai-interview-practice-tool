@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Aptitude Result</h3>
+        <p class="subtitle">Session #{{ session.id }} • Stage 1 evaluation summary</p>
+    </div>
+    <div class="action-row">
+        {% if show_continue_to_coding %}
+            <a class="btn btn-success" href="{% url 'interview:coding_round' session.id %}">Continue to Stage 2</a>
+        {% endif %}
+        <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">View Progress</a>
+        <a class="btn btn-outline" href="{% url 'interview:reports' %}">View Reports</a>
+        <a class="btn" href="{% url 'interview:dashboard' %}">Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 14px;">
+    <div class="page-head" style="margin:0;">
+        <strong>Score</strong>
+        <span class="badge">{{ stage_result.score }} / {{ stage_result.max_score }}</span>
+    </div>
+    <p class="subtitle" style="margin-top:10px;">{{ stage_result.feedback }}</p>
+    <p class="subtitle" style="margin-top:6px;">Stage 2 (Coding) is the next step and will be enabled in the next milestone.</p>
+</div>
+
+<h4 class="section-title">Answer Review</h4>
+{% for response in responses %}
+    <div class="list">
+        <div class="meta" style="margin-bottom:6px;">Q{{ forloop.counter }}{% if response.session_question.question.topic %} • {{ response.session_question.question.topic }}{% endif %}</div>
+        <p style="margin:0 0 8px 0;"><strong>{{ response.session_question.question.question_text }}</strong></p>
+        <div class="meta">Your Answer: {{ response.get_selected_option_display }}</div>
+        <div class="meta">Correct Answer: Option {{ response.session_question.question.correct_option }}</div>
+        <div class="meta">Status: {% if response.is_correct %}✅ Correct{% else %}❌ Incorrect{% endif %}</div>
+    </div>
+{% empty %}
+    <div class="empty-state">No responses recorded.</div>
+{% endfor %}
+{% endblock %}

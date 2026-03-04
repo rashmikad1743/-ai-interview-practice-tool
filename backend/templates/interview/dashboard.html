@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Student Dashboard</h3>
+        <p class="subtitle">Start a new mock interview, resume pending attempts, or view report history.</p>
+    </div>
+    <div class="action-row">
+        <a class="btn btn-success" href="{% url 'interview:start_interview' %}">+ Start New Interview</a>
+        <a class="btn btn-outline" href="{% url 'interview:reports' %}">View Reports</a>
+    </div>
+</div>
+
+<h4 class="section-title">Resume Previous Attempt</h4>
+{% if in_progress_sessions %}
+    {% for session in in_progress_sessions %}
+        <div class="list">
+            <div class="page-head" style="margin: 0 0 6px 0;">
+                <strong>Session #{{ session.id }}</strong>
+                <span class="badge">In Progress</span>
+            </div>
+            <div class="meta" style="margin-bottom:10px;">Started: {{ session.started_at }}</div>
+            <div class="meta" style="margin-bottom:10px;">Next: Resume and continue to pending stage</div>
+            <div class="action-row">
+                <a class="btn" href="{% url 'interview:resume_interview' session.id %}">Resume</a>
+                <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">View Progress</a>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">No in-progress attempts yet.</div>
+{% endif %}
+
+<h4 class="section-title">Completed Attempts</h4>
+{% if completed_sessions %}
+    {% for session in completed_sessions %}
+        <div class="list">
+            <div class="page-head" style="margin: 0 0 6px 0;">
+                <strong>Session #{{ session.id }}</strong>
+                <span class="badge">Completed</span>
+            </div>
+            <div class="meta">Score: {{ session.weighted_score|default:'N/A' }}</div>
+            <div class="meta">Completed: {{ session.completed_at|default:'-' }}</div>
+            <div class="action-row">
+                <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">View Progress</a>
+                <a class="btn btn-success" href="{% url 'interview:download_report_pdf' session.id %}">Download PDF</a>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">No completed attempts yet.</div>
+{% endif %}
+{% endblock %}

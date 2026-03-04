@@ -1,0 +1,382 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .landing {
+        display: grid;
+        gap: 18px;
+    }
+
+    .hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 0;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        overflow: hidden;
+        background: var(--surface-soft);
+    }
+
+    .hero-content {
+        padding: 38px 34px;
+        background:
+            radial-gradient(circle at 8% 12%, rgba(37, 99, 235, 0.17), transparent 35%),
+            radial-gradient(circle at 92% 85%, rgba(16, 185, 129, 0.14), transparent 30%),
+            var(--surface-soft);
+    }
+
+    .hero-title {
+        margin: 12px 0 0;
+        font-size: 48px;
+        line-height: 1.05;
+        letter-spacing: -0.8px;
+        max-width: 95%;
+    }
+
+    .hero-sub {
+        margin-top: 14px;
+        font-size: 16px;
+        line-height: 1.72;
+        color: var(--muted);
+        max-width: 92%;
+    }
+
+    .hero-actions {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .stat-row {
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .stat-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        background: var(--surface);
+        text-align: center;
+    }
+
+    .stat-item strong {
+        display: block;
+        font-size: 22px;
+    }
+
+    .stat-item span {
+        color: var(--muted);
+        font-size: 12px;
+    }
+
+    .hero-media {
+        border-left: 1px solid var(--border);
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        min-height: 520px;
+    }
+
+    .media-card {
+        position: relative;
+        overflow: hidden;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+    }
+
+    .media-card:last-child {
+        border-bottom: none;
+    }
+
+    .media-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(2, 6, 23, 0.4), rgba(2, 6, 23, 0));
+        pointer-events: none;
+    }
+
+    .media-art {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        background:
+            radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.22), transparent 40%),
+            radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.22), transparent 40%),
+            var(--surface);
+    }
+
+    .media-art svg {
+        width: 88%;
+        height: 88%;
+    }
+
+    .section-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .section-box {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface-soft);
+        padding: 16px;
+    }
+
+    .section-box h4 {
+        margin: 0 0 8px;
+    }
+
+    .section-box p,
+    .section-box li {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .section-box ul {
+        margin: 0;
+        padding-left: 18px;
+        display: grid;
+        gap: 5px;
+    }
+
+    .cta-band {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface-soft);
+        padding: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .cta-band p {
+        margin: 0;
+        color: var(--muted);
+    }
+
+    .contact-panel {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface-soft);
+        padding: 16px;
+    }
+
+    .contact-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .contact-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        padding: 10px;
+    }
+
+    .contact-item .meta {
+        margin-bottom: 6px;
+    }
+
+    .contact-item a {
+        text-decoration: none;
+        word-break: break-word;
+        font-weight: 600;
+    }
+
+    @media (max-width: 980px) {
+        .hero {
+            grid-template-columns: 1fr;
+        }
+
+        .hero-media {
+            min-height: 360px;
+            border-left: none;
+            border-top: 1px solid var(--border);
+        }
+
+        .hero-title {
+            font-size: 35px;
+        }
+
+        .stat-row,
+        .section-grid,
+        .contact-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .hero-content {
+            padding: 22px 16px;
+        }
+
+        .hero-title {
+            font-size: 30px;
+            max-width: 100%;
+        }
+
+        .hero-sub {
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 100%;
+        }
+
+        .stat-item strong {
+            font-size: 20px;
+        }
+
+        .section-box,
+        .contact-panel,
+        .cta-band {
+            padding: 12px;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .hero-title {
+            font-size: 26px;
+            line-height: 1.15;
+        }
+
+        .hero-actions {
+            width: 100%;
+        }
+
+        .hero-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="landing">
+    <section class="hero">
+        <div class="hero-content">
+            <span class="badge">Campus Placement Preparation</span>
+            <h1 class="hero-title">AI Interview Practice That Feels Like Real Placements</h1>
+            <p class="hero-sub">From aptitude to HR, practice complete interviews with role-focused questions, voice answers, and detailed final analysis so you know exactly where to improve before your real campus drive.</p>
+
+            <div class="hero-actions">
+                <a class="btn btn-success" href="{% url 'accounts:signup' %}">Start Free Practice</a>
+                <a class="btn btn-outline" href="{% url 'accounts:login' %}">I Already Have Account</a>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-item">
+                    <strong>4</strong>
+                    <span>Rounds Covered</span>
+                </div>
+                <div class="stat-item">
+                    <strong>20+</strong>
+                    <span>Technical Roles</span>
+                </div>
+                <div class="stat-item">
+                    <strong>100%</strong>
+                    <span>Progress Tracking</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-media">
+            <div class="media-card">
+                <div class="media-art" aria-label="Campus placement visual">
+                    <svg viewBox="0 0 800 420" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="50" y="70" width="300" height="250" rx="20" fill="#2563eb" opacity="0.18"/>
+                        <rect x="90" y="110" width="220" height="170" rx="12" fill="#ffffff" opacity="0.85"/>
+                        <rect x="120" y="140" width="160" height="18" rx="9" fill="#2563eb" opacity="0.7"/>
+                        <rect x="120" y="175" width="120" height="14" rx="7" fill="#475569" opacity="0.5"/>
+                        <rect x="120" y="202" width="140" height="14" rx="7" fill="#475569" opacity="0.5"/>
+                        <rect x="120" y="229" width="90" height="14" rx="7" fill="#475569" opacity="0.5"/>
+                        <circle cx="510" cy="170" r="86" fill="#10b981" opacity="0.18"/>
+                        <circle cx="510" cy="160" r="58" fill="#ffffff" opacity="0.95"/>
+                        <path d="M480 160l18 18 42-42" stroke="#10b981" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <rect x="430" y="270" width="180" height="24" rx="12" fill="#0f172a" opacity="0.12"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="media-card">
+                <div class="media-art" aria-label="Interview handshake visual">
+                    <svg viewBox="0 0 800 420" role="img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="250" cy="140" r="58" fill="#2563eb" opacity="0.2"/>
+                        <circle cx="560" cy="140" r="58" fill="#10b981" opacity="0.2"/>
+                        <circle cx="250" cy="140" r="36" fill="#ffffff" opacity="0.95"/>
+                        <circle cx="560" cy="140" r="36" fill="#ffffff" opacity="0.95"/>
+                        <path d="M270 248c32-20 58-20 90 0" stroke="#2563eb" stroke-width="20" stroke-linecap="round" fill="none"/>
+                        <path d="M530 248c-32-20-58-20-90 0" stroke="#10b981" stroke-width="20" stroke-linecap="round" fill="none"/>
+                        <rect x="320" y="220" width="160" height="70" rx="24" fill="#ffffff" opacity="0.98"/>
+                        <path d="M350 245h100" stroke="#475569" stroke-width="10" stroke-linecap="round"/>
+                        <path d="M365 267h70" stroke="#94a3b8" stroke-width="8" stroke-linecap="round"/>
+                        <rect x="230" y="300" width="340" height="26" rx="13" fill="#0f172a" opacity="0.12"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-grid">
+        <div class="section-box">
+            <h4>How It Works</h4>
+            <ul>
+                <li>Create account and start interview session</li>
+                <li>Complete Aptitude and Coding rounds</li>
+                <li>Finish Technical and HR rounds</li>
+                <li>Get final overall result and feedback</li>
+            </ul>
+        </div>
+
+        <div class="section-box">
+            <h4>What You Improve</h4>
+            <p>Problem solving speed, coding clarity, technical communication, and HR confidence with structured, repeatable practice.</p>
+        </div>
+
+        <div class="section-box">
+            <h4>Best For</h4>
+            <p>Students preparing for campus placements and entry-level interviews in software, AI/ML, full stack, and product roles.</p>
+        </div>
+    </div>
+
+    <div class="cta-band">
+        <div>
+            <strong>Ready to improve your interview performance?</strong>
+            <p>Start one session and check your final overall result in the same flow.</p>
+        </div>
+        <a class="btn btn-success" href="{% url 'accounts:signup' %}">Create Free Account</a>
+    </div>
+
+    <div class="contact-panel">
+        <div class="page-head" style="margin: 0 0 8px 0;">
+            <div>
+                <h3 class="page-title" style="font-size: 22px;">Contact Us</h3>
+                <p class="subtitle">For feedback, collaboration, or project discussion.</p>
+            </div>
+        </div>
+
+        <div class="contact-grid">
+            <div class="contact-item">
+                <div class="meta">Email</div>
+                <a href="mailto:rashmikad1743@gmail.com">rashmikad1743@gmail.com</a>
+            </div>
+            <div class="contact-item">
+                <div class="meta">LinkedIn</div>
+                <a href="https://www.linkedin.com/in/rashmika-makwana-39b0a6254" target="_blank" rel="noopener noreferrer">linkedin.com/in/rashmika-makwana-39b0a6254</a>
+            </div>
+            <div class="contact-item">
+                <div class="meta">GitHub</div>
+                <a href="https://github.com/rashmikad1743" target="_blank" rel="noopener noreferrer">github.com/rashmikad1743</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

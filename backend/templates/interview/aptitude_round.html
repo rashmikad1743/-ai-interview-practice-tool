@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Stage 1 — Aptitude Round</h3>
+        <p class="subtitle">Session #{{ session.id }} • {{ aptitude_duration_minutes }} min timer • Auto-submit on time out.</p>
+    </div>
+    <div class="action-row">
+        <span class="badge" id="timerBadge">Time Left: --:--</span>
+        <a class="btn btn-outline" href="{% url 'interview:dashboard' %}">Save & Exit</a>
+    </div>
+</div>
+
+<form method="post" id="aptitudeForm">
+    {% csrf_token %}
+
+    {% for session_question in session_questions %}
+        <div class="list" style="margin-bottom: 14px;">
+            <div class="meta" style="margin-bottom: 6px;">Question {{ forloop.counter }}{% if session_question.question.topic %} • {{ session_question.question.topic }}{% endif %}</div>
+            <p style="margin: 0 0 10px 0;"><strong>{{ session_question.question.question_text }}</strong></p>
+
+            <label style="display:block; margin-bottom:6px;">
+                <input type="radio" name="answer_{{ session_question.id }}" value="A"> A) {{ session_question.question.option_a }}
+            </label>
+            <label style="display:block; margin-bottom:6px;">
+                <input type="radio" name="answer_{{ session_question.id }}" value="B"> B) {{ session_question.question.option_b }}
+            </label>
+            <label style="display:block; margin-bottom:6px;">
+                <input type="radio" name="answer_{{ session_question.id }}" value="C"> C) {{ session_question.question.option_c }}
+            </label>
+            <label style="display:block; margin-bottom:6px;">
+                <input type="radio" name="answer_{{ session_question.id }}" value="D"> D) {{ session_question.question.option_d }}
+            </label>
+        </div>
+    {% endfor %}
+
+    <div class="action-row">
+        <button class="btn btn-success" type="submit">Submit Aptitude Round</button>
+    </div>
+</form>
+
+<script>
+    (function () {
+        let remaining = Number('{{ remaining_seconds }}');
+        const timerBadge = document.getElementById('timerBadge');
+        const form = document.getElementById('aptitudeForm');
+
+        const formatTime = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        };
+
+        const tick = () => {
+            timerBadge.textContent = 'Time Left: ' + formatTime(Math.max(0, remaining));
+
+            if (remaining <= 0) {
+                timerBadge.textContent = 'Time Left: 00:00';
+                form.submit();
+                return;
+            }
+
+            remaining -= 1;
+            setTimeout(tick, 1000);
+        };
+
+        tick();
+    })();
+</script>
+{% endblock %}

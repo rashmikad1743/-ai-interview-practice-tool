@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">{{ stage_title }}</h3>
+        <p class="subtitle">Session #{{ session.id }}</p>
+    </div>
+    <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">Back to Progress</a>
+</div>
+
+<div class="card" style="margin-bottom: 14px;">
+    <p class="subtitle" style="margin: 0;">{{ stage_description }}</p>
+</div>
+
+<div class="action-row">
+    {% if next_stage_url %}
+        <a class="btn btn-success" href="{{ next_stage_url }}">{{ next_stage_label }}</a>
+    {% endif %}
+    <a class="btn btn-outline" href="{% url 'interview:dashboard' %}">Back to Dashboard</a>
+</div>
+{% endblock %}

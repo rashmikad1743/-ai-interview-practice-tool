@@ -1,0 +1,36 @@
+.vercel/
+
+# Environment files
+.env
+.env.*
+!.env.example
+!backend/.env.example
+
+# Python cache/build
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+backend/.venv/
+
+# Django / local runtime
+*.log
+db.sqlite3
+backend/db.sqlite3
+media/
+backend/media/
+staticfiles/
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor / OS
+.DS_Store
+Thumbs.db

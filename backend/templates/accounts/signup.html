@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-wrap card">
+    <div class="page-head" style="margin-bottom: 8px;">
+        <div>
+            <h3 class="page-title">Create Student Account</h3>
+            <p class="subtitle">Start mock interviews, track attempts, and review progress.</p>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="split-grid">
+            <div class="form-row">
+                {{ form.first_name.label_tag }}
+                {{ form.first_name }}
+                {{ form.first_name.errors }}
+            </div>
+            <div class="form-row">
+                {{ form.last_name.label_tag }}
+                {{ form.last_name }}
+                {{ form.last_name.errors }}
+            </div>
+            <div class="form-row">
+                {{ form.college.label_tag }}
+                {{ form.college }}
+                {{ form.college.errors }}
+            </div>
+            <div class="form-row">
+                {{ form.enrollment_number.label_tag }}
+                {{ form.enrollment_number }}
+                {{ form.enrollment_number.errors }}
+            </div>
+            <div class="form-row">
+                {{ form.email.label_tag }}
+                {{ form.email }}
+                {{ form.email.errors }}
+            </div>
+            <div class="form-row">
+                {{ form.username.label_tag }}
+                {{ form.username }}
+                {{ form.username.errors }}
+            </div>
+            <div class="form-row">
+                {{ form.password1.label_tag }}
+                {{ form.password1 }}
+                {{ form.password1.errors }}
+            </div>
+            <div class="form-row">
+                {{ form.password2.label_tag }}
+                {{ form.password2 }}
+                {{ form.password2.errors }}
+            </div>
+        </div>
+
+        <div class="action-row" style="margin-top: 14px;">
+            <button class="btn" type="submit">Create account</button>
+            <a class="btn btn-outline" href="{% url 'accounts:login' %}">Back to login</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

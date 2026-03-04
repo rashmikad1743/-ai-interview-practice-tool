@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Technical Round Result</h3>
+        <p class="subtitle">Session #{{ session.id }} • Stage 3 voice evaluation summary</p>
+    </div>
+    <div class="action-row">
+        <a class="btn btn-success" href="{% url 'interview:hr_round' session.id %}">Continue to Stage 4</a>
+        <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">View Progress</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 14px;">
+    <div class="page-head" style="margin:0;">
+        <strong>Stage 3 Score</strong>
+        <span class="badge">{{ stage_result.score }} / {{ stage_result.max_score }}</span>
+    </div>
+    <p class="subtitle" style="margin-top:10px;">{{ stage_result.feedback }}</p>
+</div>
+
+<div class="list">
+    <div class="meta"><strong>Transcription Engine:</strong> {{ technical_response.stt_engine|default:'browser' }}</div>
+    <div class="meta"><strong>Camera Used:</strong> {% if technical_response.camera_enabled %}Yes{% else %}No{% endif %}</div>
+    {% if technical_response.resume_file %}
+        <div class="meta"><strong>Resume:</strong> {{ technical_response.resume_file.name }}</div>
+    {% endif %}
+</div>
+
+<div class="list">
+    <strong>Resume-based Questions Asked</strong>
+    {% if technical_response.generated_questions %}
+        <ol style="margin: 8px 0 0 18px;">
+            {% for question in technical_response.generated_questions %}
+                <li class="meta" style="margin-bottom:6px;">{{ question }}</li>
+            {% endfor %}
+        </ol>
+    {% else %}
+        <div class="meta" style="margin-top:8px;">No generated questions found.</div>
+    {% endif %}
+</div>
+
+<div class="list">
+    <strong>Transcript</strong>
+    <pre style="white-space: pre-wrap; margin-top:8px;">{{ technical_response.transcript|default:'(No transcript)' }}</pre>
+</div>
+
+<div class="list">
+    <strong>Interviewer Notes</strong>
+    <pre style="white-space: pre-wrap; margin-top:8px;">{{ technical_response.interviewer_notes|default:'(No notes)' }}</pre>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Coding Result</h3>
+        <p class="subtitle">Session #{{ session.id }} • Stage 2 placeholder evaluation</p>
+    </div>
+    <div class="action-row">
+        {% if show_continue_to_technical %}
+            <a class="btn btn-success" href="{% url 'interview:technical_round' session.id %}">Continue to Stage 3</a>
+        {% endif %}
+        <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">View Progress</a>
+        <a class="btn btn-outline" href="{% url 'interview:reports' %}">View Reports</a>
+        <a class="btn" href="{% url 'interview:dashboard' %}">Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 14px;">
+    <div class="page-head" style="margin:0;">
+        <strong>Stage 2 Score</strong>
+        <span class="badge">{{ stage_result.score }} / {{ stage_result.max_score }}</span>
+    </div>
+    <p class="subtitle" style="margin-top:10px;">{{ stage_result.feedback }}</p>
+    <p class="subtitle" style="margin-top:6px;">Evaluation uses visible + hidden test cases with function-level execution checks.</p>
+</div>
+
+<h4 class="section-title">Submission Review</h4>
+{% for response in responses %}
+    <div class="list">
+        <div class="page-head" style="margin:0 0 6px 0;">
+            <strong>Q{{ forloop.counter }}: {{ response.session_question.question.title }}</strong>
+            <span class="badge">Score {{ response.score }}</span>
+        </div>
+        <div class="meta">Language: {{ response.get_language_display }}</div>
+        <div class="meta">Run Status: {{ response.get_run_status_display }}</div>
+        <div class="meta">{{ response.feedback }}</div>
+        <details style="margin-top:10px;">
+            <summary class="meta" style="cursor:pointer;">View run output</summary>
+            <pre style="white-space: pre-wrap; margin-top:8px;">{{ response.run_output|default:'(No output)' }}</pre>
+            <pre style="white-space: pre-wrap; margin-top:8px;">{{ response.compile_output|default:'(No compile/errors)' }}</pre>
+        </details>
+        <details style="margin-top:10px;">
+            <summary class="meta" style="cursor:pointer;">View submitted code</summary>
+            <pre style="white-space: pre-wrap; margin-top:8px;">{{ response.submitted_code|default:'(No code submitted)' }}</pre>
+        </details>
+    </div>
+{% empty %}
+    <div class="empty-state">No coding responses recorded.</div>
+{% endfor %}
+{% endblock %}

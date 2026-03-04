@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">HR Round Result</h3>
+        <p class="subtitle">Session #{{ session.id }} • Stage 4 evaluation summary</p>
+    </div>
+    <div class="action-row">
+        <a class="btn btn-success" href="{% url 'interview:overall_result' session.id %}">View Final Overall Result</a>
+        <a class="btn btn-outline" href="{% url 'interview:session_progress' session.id %}">View Final Progress</a>
+        <a class="btn btn-outline" href="{% url 'interview:reports' %}">Go to Reports</a>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 14px;">
+    <div class="page-head" style="margin:0;">
+        <strong>Stage 4 Score</strong>
+        <span class="badge">{{ stage_result.score }} / {{ stage_result.max_score }}</span>
+    </div>
+    <p class="subtitle" style="margin-top:10px;">{{ stage_result.feedback }}</p>
+</div>
+
+<div class="list" style="margin-bottom: 12px;">
+    <strong>HR Summary</strong>
+    <pre style="white-space: pre-wrap; margin-top:8px;">{{ hr_response.summary|default:'(No summary)' }}</pre>
+</div>
+
+<div class="list">
+    <strong>Submitted Answers</strong>
+    <ol style="margin: 8px 0 0 18px;">
+        {% for row in answer_rows %}
+            <li style="margin-bottom:10px;">
+                <div class="meta"><strong>{{ row.question }}</strong></div>
+                <div class="meta" style="margin-top:4px;">{{ row.answer|default:'(No answer submitted)' }}</div>
+            </li>
+        {% endfor %}
+    </ol>
+</div>
+{% endblock %}

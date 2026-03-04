@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Session Progress</h3>
+        <p class="subtitle">Session #{{ session.id }} • {{ completed_count }}/{{ total_stages }} rounds completed</p>
+    </div>
+    <div class="action-row">
+        {% if next_route %}
+            <a class="btn btn-success" href="{% url next_route session.id %}">{{ next_label }}</a>
+        {% endif %}
+        <a class="btn btn-outline" href="{% url 'interview:dashboard' %}">Back to Dashboard</a>
+    </div>
+</div>
+
+{% if completed_count == total_stages %}
+    <div class="action-row" style="margin-bottom: 12px;">
+        <a class="btn btn-success" href="{% url 'interview:overall_result' session.id %}">View Final Overall Result</a>
+    </div>
+{% endif %}
+
+{% for row in progress_rows %}
+    <div class="list">
+        <div class="page-head" style="margin: 0 0 6px 0;">
+            <strong>{{ row.stage_label }}</strong>
+            <div class="action-row">
+                {% if row.is_completed %}
+                    <span class="badge">Completed</span>
+                {% else %}
+                    <span class="badge">Pending</span>
+                {% endif %}
+
+                {% if row.action_url %}
+                    <a class="btn btn-outline" href="{{ row.action_url }}">{{ row.action_label }}</a>
+                {% elif row.action_hint %}
+                    <span class="badge">{{ row.action_hint }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if row.is_completed %}
+            <div class="meta">Score: {{ row.score|default:'N/A' }}</div>
+            {% if row.feedback %}
+                <div class="meta">Feedback: {{ row.feedback }}</div>
+            {% endif %}
+        {% else %}
+            <div class="meta">Not attempted yet.</div>
+            {% if row.action_hint %}
+                <div class="meta">{{ row.action_hint }}</div>
+            {% endif %}
+        {% endif %}
+    </div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <h3 class="page-title">Stage 2 — Coding Round</h3>
+        <p class="subtitle">Session #{{ session.id }} • 3 random questions • {{ coding_duration_minutes }} min timer • Auto-submit on time out.</p>
+    </div>
+    <div class="action-row">
+        <span class="badge" id="timerBadge">Time Left: --:--</span>
+        <a class="btn btn-outline" href="{% url 'interview:dashboard' %}">Back to Dashboard</a>
+    </div>
+</div>
+
+<form method="post" id="codingForm">
+    {% csrf_token %}
+
+    {% for row in response_rows %}
+        {% with session_question=row.session_question response=row.response %}
+        <div class="list" style="margin-bottom: 14px;">
+            <div class="page-head" style="margin: 0 0 8px 0;">
+                <strong>Question {{ forloop.counter }}: {{ session_question.question.title }}</strong>
+                <span class="badge">{{ session_question.question.get_difficulty_display }}</span>
+            </div>
+            <p style="margin: 0 0 10px 0;">{{ session_question.question.question_text }}</p>
+
+            {% if row.visible_case %}
+                <div class="card" style="margin-bottom:10px; padding:12px;">
+                    <div class="meta" style="margin-bottom:6px;"><strong>Sample Input</strong></div>
+                    <pre style="margin:0 0 8px 0;">{{ row.visible_case.sample_input }}</pre>
+                    <div class="meta" style="margin-bottom:6px;"><strong>Sample Output</strong></div>
+                    <pre style="margin:0 0 6px 0;">{{ row.visible_case.sample_output }}</pre>
+                    <div class="meta">Visible test case shown: 1 • Hidden test cases: {{ row.visible_case.hidden_total }}</div>
+                    <div class="meta" style="margin-top:4px;">Function input is passed as a single argument (example: <strong>func([1,3,5,2,4])</strong>).</div>
+                </div>
+            {% endif %}
+
+            <div class="form-row">
+                <label for="language_{{ session_question.id }}">Language</label>
+                <select id="language_{{ session_question.id }}" name="language_{{ session_question.id }}">
+                    {% for value, label in language_choices %}
+                        <option value="{{ value }}" {% if response and response.language == value %}selected{% elif not response and value == 'PYTHON' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-row" style="margin-bottom:0;">
+                <label for="code_{{ session_question.id }}">Your Code</label>
+                <textarea id="code_{{ session_question.id }}" name="code_{{ session_question.id }}" rows="8" placeholder="Write your solution here...">{% if response %}{{ response.submitted_code }}{% endif %}</textarea>
+            </div>
+
+            <div class="action-row" style="margin-top: 10px; margin-bottom: 8px;">
+                <button class="btn btn-outline" type="submit" name="action" value="run_{{ session_question.id }}">Run</button>
+                {% if response %}
+                    <span class="badge">Run Status: {{ response.get_run_status_display }}</span>
+                {% else %}
+                    <span class="badge">Run Status: Not Run</span>
+                {% endif %}
+            </div>
+
+            <div class="form-row" style="margin-bottom: 8px;">
+                <label>Run Output</label>
+                <textarea rows="3" readonly>{% if response %}{{ response.run_output }}{% endif %}</textarea>
+            </div>
+            <div class="form-row" style="margin-bottom: 0;">
+                <label>Compile / Error Output</label>
+                <textarea rows="3" readonly>{% if response %}{{ response.compile_output }}{% endif %}</textarea>
+            </div>
+        </div>
+        {% endwith %}
+    {% endfor %}
+
+    <div class="action-row">
+        <button class="btn btn-success" type="submit" name="action" value="submit_round">Submit Coding Round</button>
+        <a class="btn btn-outline" href="{% url 'interview:dashboard' %}">Save & Exit</a>
+    </div>
+</form>
+
+<script>
+    (function () {
+        let remaining = Number('{{ remaining_seconds }}');
+        const timerBadge = document.getElementById('timerBadge');
+        const form = document.getElementById('codingForm');
+
+        const formatTime = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        };
+
+        const tick = () => {
+            if (!timerBadge || !form) {
+                return;
+            }
+
+            timerBadge.textContent = 'Time Left: ' + formatTime(Math.max(0, remaining));
+
+            if (remaining <= 0) {
+                timerBadge.textContent = 'Time Left: 00:00';
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'submit_round';
+                form.appendChild(actionInput);
+                form.submit();
+                return;
+            }
+
+            remaining -= 1;
+            setTimeout(tick, 1000);
+        };
+
+        tick();
+    })();
+</script>
+{% endblock %}
