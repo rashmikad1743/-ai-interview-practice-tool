@@ -51,6 +51,7 @@
     let activeIndex = null;
     let isRecording = false;
     let activeStream = null;
+    let stopRequested = false;
 
     const setStatus = (text) => {
         if (statusEl) {
@@ -74,10 +75,14 @@
 
     const stopRecognition = () => {
         if (recognition && isRecording) {
+            stopRequested = true;
+            setStatus('Mic: Stopping...');
             try {
                 recognition.stop();
             } catch (e) {}
+            return;
         }
+        stopRequested = false;
         isRecording = false;
         stopTracks();
         setStatus('Mic: Inactive');
@@ -99,6 +104,7 @@
         rec.lang = 'en-US';
         rec.continuous = true;
         rec.interimResults = true;
+        rec.maxAlternatives = 1;
 
         rec.onstart = function () {
             isRecording = true;
@@ -107,19 +113,23 @@
 
         rec.onresult = (event) => {
             let finalText = '';
+            let interimText = '';
             for (let i = event.resultIndex; i < event.results.length; i += 1) {
                 const segment = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
                     finalText += segment + ' ';
+                } else {
+                    interimText += segment + ' ';
                 }
             }
 
-            if (finalText.trim()) {
+            const textToAppend = finalText.trim() || (stopRequested ? interimText.trim() : '');
+            if (textToAppend) {
                 const target = getTargetTextarea();
                 if (!target) {
                     return;
                 }
-                target.value = (target.value + ' ' + finalText.trim()).trim();
+                target.value = (target.value + ' ' + textToAppend).trim();
             }
         };
 
@@ -136,6 +146,7 @@
 
         rec.onend = function () {
             isRecording = false;
+            stopRequested = false;
             stopTracks();
             setStatus('Mic: Inactive');
         };
@@ -172,9 +183,11 @@
 
         try {
             recognition.start();
+            stopRequested = false;
         } catch (error) {
             setStatus('Mic: Could not start. Please retry.');
             isRecording = false;
+            stopRequested = false;
             stopTracks();
         }
     };
