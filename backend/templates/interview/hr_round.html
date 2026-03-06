@@ -160,6 +160,7 @@
             isRecording = false;
             stopRequested = false;
             stopTracks();
+            recognition = null;
             setStatus('Mic: Inactive');
         };
 
@@ -219,7 +220,6 @@
             const idx = this.getAttribute('data-answer-index');
             if (String(activeIndex) === String(idx)) {
                 stopRecognition();
-                activeIndex = null;
             }
         });
     });

@@ -218,6 +218,18 @@
     let audioChunks = [];
     let recognition = null;
     let availableDevices = { audioInputs: 0, videoInputs: 0 };
+    let recognitionStopRequested = false;
+    let committedTranscript = (transcriptEl.value || '').trim();
+    let latestInterimTranscript = '';
+
+    const renderTranscript = () => {
+        if (!transcriptEl) {
+            return;
+        }
+        transcriptEl.value = latestInterimTranscript
+            ? (committedTranscript + ' ' + latestInterimTranscript).trim()
+            : committedTranscript;
+    };
 
     const supportsMedia = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
@@ -258,37 +270,75 @@
             return;
         }
 
+        recognitionStopRequested = false;
+        committedTranscript = (transcriptEl.value || '').trim();
+        latestInterimTranscript = '';
+
         recognition = new SpeechRecognition();
         recognition.lang = 'en-US';
         recognition.continuous = true;
         recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            updateStatus('Speech recognition active. Start speaking...');
+        };
 
         recognition.onresult = (event) => {
-            let finalText = '';
+            let interimParts = [];
             for (let i = event.resultIndex; i < event.results.length; i += 1) {
                 const text = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
-                    finalText += text + ' ';
+                    committedTranscript = (committedTranscript + ' ' + text).trim();
+                } else {
+                    interimParts.push(text);
                 }
             }
-            if (finalText.trim()) {
-                transcriptEl.value = (transcriptEl.value + ' ' + finalText).trim();
+            latestInterimTranscript = interimParts.join(' ').trim();
+            renderTranscript();
+        };
+
+        recognition.onerror = (event) => {
+            const code = event && event.error ? event.error : 'unknown';
+            if (code === 'not-allowed') {
+                updateStatus('Speech recognition permission denied. Allow mic access in browser settings.');
+            } else if (code === 'no-speech') {
+                updateStatus('No speech detected. Speak clearly and keep mic closer.');
+            } else {
+                updateStatus('Speech recognition error (' + code + '). You can continue with manual transcript editing.');
             }
         };
 
-        recognition.onerror = () => {
-            statusEl.textContent = 'Speech recognition error. You can continue with manual transcript editing.';
+        recognition.onend = () => {
+            if (latestInterimTranscript) {
+                committedTranscript = (committedTranscript + ' ' + latestInterimTranscript).trim();
+                latestInterimTranscript = '';
+                renderTranscript();
+            }
+            recognition = null;
+            recognitionStopRequested = false;
         };
 
-        recognition.start();
+        try {
+            recognition.start();
+        } catch (error) {
+            updateStatus('Could not start speech recognition. Please retry.');
+            recognition = null;
+        }
     };
 
     const stopRecognition = () => {
         if (recognition) {
+            recognitionStopRequested = true;
             try {
                 recognition.stop();
             } catch (e) {}
-            recognition = null;
+            return;
+        }
+        if (latestInterimTranscript) {
+            committedTranscript = (committedTranscript + ' ' + latestInterimTranscript).trim();
+            latestInterimTranscript = '';
+            renderTranscript();
         }
     };
 
